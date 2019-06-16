@@ -1,0 +1,665 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+	<title>diep.io</title>
+	<style>
+		body {
+			padding: 0;
+			margin: 0;
+			overflow: hidden;
+		}
+		* {
+			box-sizing: border-box;
+		}
+	</style>
+</head>
+<body>
+	<canvas id="mainCanvas"></canvas>
+	<script>
+		const mainCanvas = document.getElementById('mainCanvas')
+		const mainCtx = mainCanvas.getContext('2d')
+
+		let mainWidth,
+			mainHeight,
+			baseWidth = 1980,
+			baseHeight = 1080,
+
+			dt = 0,
+			timestamp = 0
+
+		const resizeCanvas = () => {
+			mainWidth = innerWidth
+			mainHeight = innerHeight
+			mainCanvas.width = mainWidth
+			mainCanvas.height = mainHeight
+		}
+		resizeCanvas()
+		window.onresize = () => { resizeCanvas() }
+
+		const gameSize = 1500
+		let x = 0
+		let y = 0
+
+		const colors = {
+			'blue': '#00b0e1 #0083a8',
+			'green': '#00e06c #00a851',
+			'red': '#f04f54 #b33b3f',
+			'yellow': '#ffe46b #bfae4e',
+			'purple': '#be7ff5 #8f5fb7',
+			'grey': '#999999 #727272',
+			'darkblue': '#768cfc #5869bd',
+			'lightred': '#fc7676 #bd585a',
+			'default': '#000000 #000000',
+		}
+
+		class Polygon {
+			constructor(owner, x, y, radius, color) {
+				this.owner = owner
+				this.x = x
+				this.y = y
+				this.angle = Math.random() * 2 * Math.PI 
+				this.setColor(color)
+				this.setRadius(radius)
+				this.isTank = false
+				this.isBullet = false
+				this.isTurret = false
+				this.isSquare = false
+				this.isTriangle = false
+				this.isPentagon = false
+				this.points = []
+				this.vectors = []
+			}
+			getSpeed() {
+				return 5
+			}
+			setRadius(radius) {
+				this.radius = radius
+			}
+			setColor(color) {
+				this.color = color
+				let colorData = colors[color] ? colors[color] : colors['default']
+				colorData = colorData.split(' ')
+				this.fillColor = colorData[0]
+				this.strokeColor = colorData[1]
+			}
+			addVector(x, y, decay) {
+				this.vectors.push({ x, y, decay })
+			}
+			destroy() {
+				this.destroyed = true
+				this.do = 1
+				this.ds = 1
+				if(this.isTank) {
+					for(let i = 0; i < this.turrets.length; i++) this.turrets[i].destroy()
+				}
+			}
+			float() {
+				let rad = Math.random() * 2 * Math.PI
+				let fv = 0.0005
+				this.addVector(Math.cos(rad) * fv, Math.sin(rad) * fv, 0.99)
+			}
+			spin(deg, ti) {
+				!this.spinDir && (this.spinDir = Math.random() > 0.5 ? -1 : 1)
+				this.angle += this.spinDir * deg * Math.PI / 180 * dt / ti
+				this.angle %= 2 * Math.PI
+			}
+			move() {
+				if(this.destroyed) return
+				for(let i = this.vectors.length - 1; i >= 0; i--) {
+					let vec = this.vectors[i]
+					this.x += vec.x * dt
+					this.y += vec.y * dt
+					if(vec.decay) {
+						vec.x *= vec.decay 
+						vec.y *= vec.decay
+						if(Math.hypot(vec.x, vec.y) < 0.0001) this.vectors.splice(i, 1)
+					}
+				}
+				this.x = Math.max(0, Math.min( this.x, gameSize))
+				this.y = Math.max(0, Math.min( this.y, gameSize))
+			}
+			draw(ctx) {
+				if((-x + this.x < -this.radius || -y + this.y < -this.radius || -x + this.x > mainWidth + this.radius || -y + this.y > mainHeight + this.radius) && !this.isTurret) return false
+				let f = this.isTurret ? this.owner.radius : this.points.length > 0 ? this.radius : 1
+				let animx = 0
+				if(this.isTurret) { 
+					this.fireAnim = (1 * 1 + this.fireAnim * 9) / 10
+					animx = this.pr * f + 4 * Math.sin(2 * Math.PI * this.fireAnim)
+				}
+				if(this.destroyed) {
+					return false
+				}
+				ctx.save()
+				ctx.translate(this.x, this.y)
+				ctx.rotate(this.angle)
+				this.isTurret && ctx.rotate(this.pa * Math.PI / 180)
+				ctx.translate(animx, 0)
+				if(this.destroyed) {
+					ctx.scale(this.ds, this.ds)
+					ctx.globalAlpha = this.do
+				}
+
+				let lw = 3
+				ctx.fillStyle = this.fillColor
+				ctx.strokeStyle = this.strokeColor
+				ctx.lineWidth = lw
+				ctx.beginPath()
+				if(this.points.length > 0) {
+					ctx.lineJoin = 'round'
+					ctx.moveTo(this.points[0].x * f, this.points[0].y * f)
+					for(let j = 1; j < this.points.length; j++) {
+						ctx.lineTo(this.points[j][0] * f, this.points[j][1] * f)
+					}
+				} else if(this.isTurret) {
+					let a = f * this.fx
+					let b = f * this.fy
+					ctx.fillRect(0, -b / 2, a, b)
+					ctx.strokeRect(-lw / 2, -b / 2 - lw / 2, a + lw, b + lw)
+				} else {
+					if(this.isTank) {
+						let ordered = this.turrets.sort((a, b) => a.pr - b.pr)
+						for(let i = 0; i < ordered.length; i++) {
+							this.turrets[i].draw(ctx)
+						}
+					}
+					ctx.arc(0, 0, this.radius, 0, 2 * Math.PI)
+				}
+				ctx.closePath()
+				ctx.fill()
+				ctx.stroke()
+				ctx.restore()
+			}
+		}
+
+		class Bullet extends Polygon {
+			constructor(owner, x, y, radius, color) {
+				super(owner, x, y, radius, color)
+				this.isBullet = true
+				setTimeout(() => {
+					this.destroy()
+					removeEnt(this)
+				}, 4000)
+				addEnt(this)
+			}
+		}
+
+		class Turret extends Polygon {
+			constructor(owner, pa, pr, fx, fy) {
+				super(owner, 0, 0, 0, 'grey')
+				this.isTurret = true
+				this.angle = 0
+				this.fx = fx || 0.9
+				this.fy = fy || 0.7
+				this.pa = pa
+				this.pr = pr
+				this.fireAnim = 1
+			}
+		}
+
+		let scores = `1 = 0
+					2 = 4
+					3 = 13
+					4 = 28
+					5 = 50
+					6 = 78
+					7 = 113
+					8 = 157
+					9 = 211
+					10 = 272
+					11 = 350
+					12 = 437
+					13 = 536
+					14 = 653
+					15 = 787
+					16 = 938
+					17 = 1109
+					18 = 1301
+					19 = 1516
+					20 = 1757
+					21 = 2026
+					22 = 2325
+					23 = 2653
+					24 = 3017
+					25 = 3416
+					26 = 3854
+					27 = 4334
+					28 = 4857
+					29 = 5428
+					30 = 6048
+					31 = 6720
+					32 = 7448
+					33 = 8235
+					34 = 9084
+					35 = 9998
+					36 = 10981
+					37 = 12036
+					38 = 13167
+					39 = 14377
+					40 = 15671
+					41 = 17053
+					42 = 18526
+					43 = 20094
+					44 = 21762
+					45 = 23545`
+					.split('\n').map(a => a.split(' = ')).map(a => parseInt(a[1]))
+
+		let machineGun = [[0, 1], [20, 0.8], [-20, 0.8], [40, 0.6], [-40, 0.6]]
+		let gun = [[0, 1]]
+
+		let g1 = [[0, 0.9], [180, 0.7]]
+
+		class Tank extends Polygon {
+			constructor(x, y, score, color) {
+				super(null, x, y, 23, color)
+				this.isTank = true
+				this.turrets = []
+				this.setTurretData(g1)
+				this.autoSpin = !true
+				this.autoFire = false
+				this.angle = 0
+				this.fireTimer = 0
+				this.speed = 0
+				this.health = 0
+				this.moveSpeed = 0
+				this.bulletSpeed = 2
+				this.bulletDamage = 0
+				this.reload = 1
+				this.healthRegen = 0
+				this.bodyDamage = 0
+				this.level = 0
+				this.setScore(score)
+			}
+			getScore() {
+				return scores[Math.min(this.level, 45)]
+			}
+			setTurretData(data) {
+				this.turrets = []
+				data.forEach(turretData =>
+					this.turrets.push(new Turret(this, turretData[0], turretData[1], turretData[2], turretData[3])))
+			}
+			setScore(score) {
+				this.score = score
+				this.level = scores.filter(s => s <= score).length
+				this.radius = this.getRadius()
+			}
+			getRadius() {
+				return 18 + Math.sqrt(this.level * 2)
+			}
+			getMoveSpeed() {
+				let base = 0.01
+				return base + this.moveSpeed * 0.0003
+			}
+			getReload() {
+				let base = 500
+				return base - this.reload * base * 0.1
+			}
+			getBulletSpeed() {
+				let base = 0.19
+				return base + this.bulletSpeed * 0.01
+			}
+			control(keys) {
+				let v = this.getMoveSpeed()
+				let decay = 0.9
+				if(keys.a) {
+					this.addVector(-v, 0, decay)
+				} else if(keys.d) {
+					this.addVector(v, 0, decay)
+				}
+				if(keys.w) {
+					this.addVector(0, -v, decay)
+				} else if(keys.s) {
+					this.addVector(0, v, decay)
+				}
+			}
+			fireFrom(t) {
+				let pa = t.pa * Math.PI / 180
+				let bullet = new Bullet(this, 
+					this.x + Math.cos(this.angle + pa) * (t.pr + t.fx) * this.radius, 
+					this.y + Math.sin(this.angle + pa) * (t.pr + t.fx) * this.radius, 
+					this.radius * t.fy / 2, this.color)
+				let deflect = 15 * Math.PI/180
+				deflect = this.angle + pa + -deflect + Math.random() * 2 * deflect
+				let v = this.getBulletSpeed()
+				let cos = Math.cos(deflect)
+				let sin = Math.sin(deflect)
+				bullet.addVector(cos * v, sin * v)
+				this.addVector(-cos * v * 0.05, -sin * v * 0.05, 0.98)
+				t.fireAnim = 0.5
+			}
+			fire() {
+				if(this.fireTimer < this.getReload()) return false
+				else this.fireTimer = 0
+				let len = this.turrets.length
+				for(let i = 0; i < len; i++) {
+					this.fireFrom(this.turrets[i])
+				}
+			}
+			update() {
+				this.getReload() >= this.fireTimer && (this.fireTimer += dt)
+				this.autoSpin && this.spin(1, 10)
+				this.autoFire && this.fire()
+				this.move()
+			}
+		}
+
+		const maxChildren = 4
+		const maxDepth = 10
+
+		const aabb = (rect1, rect2) => {
+			return rect1.x + rect1.w > rect2.x && rect1.x < rect2.x + rect2.w && 
+				rect1.y + rect1.h > rect2.y && rect1.y < rect2.y + rect2.h
+		}
+
+		class Rectangle {
+			constructor(x, y, w, h) {
+				this.x = x
+				this.y = y 
+				this.w = w
+				this.h = h
+			}
+		}
+
+		class Quadtree extends Rectangle {
+			constructor(root, parent, depth, x, y, w, h) {
+				super(x, y, w, h)
+				this.nodes = []
+				this.items = []
+				this.root = root || this
+				this.parent = parent || this
+				this.depth = depth || 0
+			}
+			static remove(a, callback) {
+				if(a.qtNode == null) {
+					return callback(false)
+				} else {
+					let l = a.qtNode.items.indexOf(a)
+					if(l > -1) {
+						a.qtNode.items.splice(l, 1)
+						let items = a.qtNode.parent.getItems()
+						a.qtNode.parent.clear()
+						for(let m = 0; m < items.length; m++) a.qtNode.parent.insert(items[m])
+						callback(true)
+						let x = a.qtNode.parent.getItems()
+						/*if(x < items) {
+							console.log('Items lost from: ', a.qtNode.parent)
+							console.log('Original: ', items)
+							console.log('New: ', x)
+							console.log('Cos there are moving.')
+						}*/
+					} else {
+						callback(false)
+					}
+				}
+			}
+			static update(a, callback) {
+				Quadtree.remove(a, (removed) => {
+					if(removed == true) {
+						a.qtNode.root.insert(a)
+						callback(true)
+					} else callback(false)
+				})
+			}
+			clear() {
+				for(let x = 0; x < this.nodes.length; x++) this.nodes[x].clear()
+				this.nodes.length = 0
+				this.items.length = 0
+			}
+			getItems() {
+				let items = []
+				this.query(this, a => items.push(a))
+				return items
+			}
+			query(range, callback) {
+				if(aabb(this, range)) {
+					for(let j = 0; j < this.items.length; j++) callback(this.items[j])
+					if(this.nodes.length > 0) {
+						for(let i = 0; i < this.nodes.length; i++) this.nodes[i].query(range, callback)
+					}
+					
+				}
+			}
+			divide() {
+				let a = this.depth + 1
+				let c = this.w / 2
+				let d = this.h / 2
+				this.nodes.push(new Quadtree(this.root, this, a, this.x, this.y, c, d))
+				this.nodes.push(new Quadtree(this.root, this, a, this.x + c, this.y, c, d))
+				this.nodes.push(new Quadtree(this.root, this, a, this.x, this.y + d, c, d))
+				this.nodes.push(new Quadtree(this.root, this, a, this.x + c, this.y + d, c, d))
+				a = this.items
+				this.items = []
+				for(c = 0; c < a.length; c++) this.insert(a[c])
+			}
+			insert(a) {
+				if(this.nodes.length != 0) {
+					this.nodes[this.findNodeFor(a)].insert(a)
+				} else {
+					if(this.items.length >= maxChildren && this.depth < maxDepth) {
+						this.divide()
+						this.nodes[this.findNodeFor(a)].insert(a)
+					} else {
+						this.items.push(a)
+						a.qtNode = this
+					}
+				}
+			}
+			findNodeFor(a) {
+				return a.x <= this.x + this.w / 2 ? (a.y <= this.y + this.h / 2 ? 0 : 2) : (a.y <= this.y + this.h / 2 ? 1 : 3)
+			}
+			draw(ctx) {
+				ctx.strokeStyle = 'red'
+				ctx.lineWidth = 1
+				ctx.strokeRect(this.x, this.y, this.w, this.h)
+				if(this.nodes.length > 0) {
+					for(let k = 0; k < this.nodes.length; k++) {
+						this.nodes[k].draw(ctx)
+					}
+				}
+			}
+		}
+
+		const polygon = (num) => {
+			let p = []
+			for(let j = 0; j <= num; j++) {
+				let angle = 2 * Math.PI * j / num
+				p.push([Math.cos(angle), Math.sin(angle)])
+			}
+			return p
+		}
+
+		let trianglePoints = polygon(3)
+		let squarePoints = polygon(4)
+		let pentagonPoints = polygon(5)
+
+		class Triangle extends Polygon {
+			constructor(x, y) {
+				super(null, x, y, 15, 'lightred')
+				this.isTriangle = true
+				this.points = trianglePoints
+			}
+		}
+
+		class Square extends Polygon {
+			constructor(x, y) {
+				super(null, x, y, 17, 'yellow')
+				this.isSquare = true
+				this.points = squarePoints
+			}
+		}
+
+		class Pentagon extends Polygon {
+			constructor(x, y, radius) {
+				super(null, x, y, radius == null ? 25 : 53, 'darkblue')
+				this.isPentagon = true
+				this.points = pentagonPoints
+			}
+		}
+
+		let qt = new Quadtree(null, null, null, 0, 0, gameSize, gameSize)
+		let ents = []
+
+		const addEnt = (ent) => {
+			ents.push(ent)
+			qt.insert(ent)
+		}
+		const removeEnt = (ent) => {
+			let index = ents.indexOf(ent) 
+			ents.splice(index, 1)
+			Quadtree.remove(ent, () => {})
+		}
+
+		const addSquares = (x, y, w, h, n) => {
+			while(n--) {
+				addEnt(new Square(x + Math.random() * w, y + Math.random() * h))
+			}
+		}
+
+		const addTriangles = (x, y, w, h, n) => {
+			while(n--) {
+				addEnt(new Triangle(x + Math.random() * w, y + Math.random() * h))
+			}
+		}
+
+		const addPentagons = (x, y, w, h, n, p = 0) => {
+			while(n--) {
+				addEnt(new Pentagon(x + Math.random() * w, y + Math.random() * h, Math.random() < p ? 53 : null))
+			}
+		}
+
+		addSquares(0, 0, gameSize, gameSize, 80)
+		addTriangles(0, 0, gameSize, gameSize, 20)
+		addPentagons(gameSize / 2 - 300, gameSize / 2 - 300, 600, 600, 29, 0.1)
+
+		let testTank = new Tank(100, 100, 0, 'purple')
+		addEnt(testTank)
+
+		let t = new Tank(200, 200, 20900, 'blue')
+		addEnt(t)
+		t.setTurretData(gun)
+
+		let keys = {}
+		document.onkeydown = (evt) => {
+			if(evt.repeat) return false
+
+			keys[evt.key] = true
+			if(evt.key == 'e') testTank.autoFire = testTank.autoFire ? false : true
+			if(evt.key == 'c') testTank.autoSpin = testTank.autoSpin ? false : true
+		}
+
+		let c = false
+		document.onmousedown = () => { c = true }
+		document.onmouseup = () => { c = false }
+
+		document.onkeyup = (evt) => {
+			delete keys[evt.key]
+		}
+
+		let mx = 0
+		let my = 0
+
+		document.onmousemove = (evt) => {
+			mx = evt.clientX
+			my = evt.clientY
+			
+		}
+
+		const canvas = (w, h, callback) => {
+			let canvas = document.createElement('canvas')
+			canvas.width = w
+			canvas.height = h 
+			callback && callback(canvas.getContext('2d'))
+			return canvas
+		}
+
+		const grid = (size, t) => {
+			return mainCtx.createPattern(canvas(size, size, (ctx) => {
+				ctx.fillStyle = '#c6c6c6'
+				ctx.fillRect(0, size/2, size, t)
+				ctx.fillRect(size/2, 0, t, size)
+			}), 'repeat')
+		}
+
+		
+
+
+		const update = () => {
+			x = testTank.x - mainWidth/2
+			y = testTank.y - mainHeight/2
+
+			let angle = Math.atan2(y + my - testTank.y, x + mx - testTank.x)
+			!testTank.autoSpin && (testTank.angle = angle)
+
+			if(c && testTank.autoFire == false) {
+				testTank.fire()
+			}
+
+			ents.forEach(p => {
+				if(!aabb(p.qtNode, new Rectangle(p.x,  p.y, 0, 0) )) {
+					Quadtree.update(p, (updated) => {})
+				}
+
+				p.move()
+				!p.isTank && p.spin(1, 100)
+				!p.isTank && p.float()
+				let s = p.radius * 4
+				qt.query(new Rectangle(p.x - s/2, p.y - s/2, s, s), (a) => {
+					if(a != p) {
+						let x = a.x - p.x
+						let y = a.y - p.y
+						let d = Math.hypot(x, y) || 0.001
+						let rr = (a.radius + p.radius)
+						let t = d - rr
+						if(t < 0) {
+							let v = 0.003 * 2
+							p.addVector(-x/d * v * a.radius/rr, -y/d * v * a.radius/rr, 0.98)
+							a.addVector(x/d * v * p.radius/rr, y/d * v * p.radius/rr, 0.98)
+							p.blinkAnim = 0.5
+							a.blinkAnim = 0.5
+						}
+					}
+				}) 
+			})
+
+			testTank.control(keys)
+			testTank.update()
+		}
+
+		const draw = () => {
+			mainCtx.clearRect(0, 0, mainWidth, mainHeight)
+			mainCtx.fillStyle = '#cdcdcd'
+			mainCtx.fillRect(0, 0, mainWidth, mainHeight)
+
+			
+
+			mainCtx.save()
+			mainCtx.translate(-x, -y)
+
+			mainCtx.fillStyle = grid(20, 1)
+			mainCtx.fillRect(x, y, mainWidth, mainHeight)
+
+			// qt.draw(mainCtx)
+
+			qt.query(new Rectangle(x, y, mainWidth, mainHeight), (a) => a.draw(mainCtx))
+			
+
+			mainCtx.restore()
+		}	
+
+		const loop = () => {
+			let currTime = Date.now()
+			dt = currTime - (timestamp || currTime)
+			timestamp = currTime
+
+			update()
+			draw()
+			window.requestAnimationFrame(loop)
+		}
+
+		loop()
+		
+	</script>
+</body>
+</html>
+
+

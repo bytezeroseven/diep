@@ -1,0 +1,44 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+	<title>diep.io</title>
+	<link rel="stylesheet" type="text/css" href="./css/main.css">
+</head>
+<body>
+	<canvas id="mainCanvas"></canvas>
+	<div class='overlay' id='builder'>
+		<div class='panel'>
+			<span>Controls</span>
+			<div id='controls'>
+				<button id='turret'>New Turret</button>
+				<button id='import'>Import</button>
+				<button id='export'>Export</button>
+			</div>
+			<span>All Turrets</span>
+			<div id='turrets'></div>
+		</div>
+		<div class='panel' id='editor'>
+			<span>Angle</span>
+				<input type="number" placeholder='angle' data='angle'>
+			<span>Position</span>
+				<input type="number" placeholder='offset x' data='x'>
+				<input type="number" placeholder='offset y' data='y'>
+			<span>Dimensions</span>
+				<input type="number" placeholder='width' data='width'>
+				<input type="number" placeholder='height' data='height'>
+				<input type="number" placeholder='base length' data='baseLength'>
+				<input type="number" placeholder='spread' data='spread'>
+			<button id='remove'>Remove</button>
+		</div>
+		<button id='edit'>Edit Tank</button>
+	</div>
+	<script src='./scripts/polygon.js'></script>
+	<script src='./scripts/tank.js'></script>
+	<script src='./scripts/qt.js'></script>
+	<script src='./scripts/realm.js'></script>
+	<script src='./scripts/builder.js'></script>
+	<script src='./scripts/start.js'></script>
+	<script src='./scripts/data.js'></script>
+</body>
+</html>
