@@ -1,5 +1,6 @@
 const mainCanvas = document.getElementById('mainCanvas')
 const mainCtx = mainCanvas.getContext('2d')
+let ctx = mainCtx
 
 let mainWidth,
 	mainHeight,
@@ -26,23 +27,27 @@ let viewX = 0
 let viewY = 0
 let viewZoom = 1
 
-const progress = (ctx, w, h, p, fill) => {
-	p = Math.max(0, Math.min(1, p))
-	let bar = (w, h) => {
-		let r = h / 2
-		ctx.fillRect(r, 0, Math.max(w - r * 2, 0), h)
-		ctx.beginPath()
-		ctx.arc(r, r, r, 0, Math.PI * 2) 
-		ctx.arc(Math.max(w - r, r), r, r, 0, Math.PI * 2)
-		ctx.closePath()
-		ctx.fill()
-	}
-	ctx.fillStyle = '#545454'
-	bar(w, h)
-	ctx.fillStyle = fill || '#86c280'
-	let g = Math.min(w * 0.2, h * 0.2, 2)
-	ctx.translate(g, g)
-	bar(Math.max(p * w - g * 2, 0), h - g * 2)
+function drawProgressBar(ctx, width, height, frac, barColor) {
+	frac < 0 && (frac = 0);
+	frac > 1 && (frac = 1);
+	barColor == null && (barColor = "#86c280");
+	ctx.beginPath();
+	ctx.moveTo(0, 0);
+	ctx.lineTo(width, 0);
+	ctx.closePath();
+	ctx.lineCap = "round";
+	ctx.lineWidth = height;
+	ctx.strokeStyle = "#545454"
+	ctx.stroke();
+	ctx.beginPath();
+	ctx.moveTo(0, 0);
+	ctx.lineTo(width * frac, 0);
+	ctx.closePath();
+	ctx.lineCap = "round";
+	let lw = height < 10 ? height - 3 : Math.round(height * 0.7);
+	ctx.lineWidth = lw;
+	ctx.strokeStyle = barColor;
+	ctx.stroke();
 }
 
 const canvas = (w, h, callback) => {
@@ -133,6 +138,8 @@ const update = () => {
 			if(c && view.autoFire == false) {
 				view.fire()
 			}
+		} else {
+			view.control({})
 		}
 	}
 	
@@ -168,7 +175,7 @@ const draw = () => {
 	let w = 301
 	let h = 21
 	mainCtx.translate(mainWidth/2 - w / 2, mainHeight - 50)
-	progress(mainCtx, w, h,  1 - (view.nextScore -view.score) /  (view.nextScore - view.previousScore), '#E7D063')
+	drawProgressBar(mainCtx, w, h,  1 - (view.nextScore -view.score) /  (view.nextScore - view.previousScore), '#E7D063')
 	mainCtx.textAlign = 'center'
 	mainCtx.textBaseline = 'middle'
 	mainCtx.fillStyle = '#fff'
@@ -176,27 +183,29 @@ const draw = () => {
 	mainCtx.fillText('Level ' + view.level, w/2, h/2)
 	mainCtx.restore()
 
-	let mSize = 130
-	mainCtx.lineWidth = 4
-	mainCtx.lineCap = 'round'
-	mainCtx.lineJoin = 'round'
-	mainCtx.strokeStyle = '#797979'
-	mainCtx.strokeRect(mainWidth - 20 - mSize, mainHeight - 20 - mSize, mSize, mSize)
-	mainCtx.fillStyle = 'rgba(0, 0, 0, 0.1)'
-	mainCtx.fillRect(mainWidth - 20 - mSize, mainHeight - 20 - mSize, mSize, mSize)
-
+	let mSize = 120
 
 	mainCtx.save()
-	mainCtx.translate(mainWidth - 20 - mSize + view.x/gameSize * mSize, mainHeight - 20 - mSize + view.y/gameSize * mSize)
+	mainCtx.translate(mainWidth - 15 - mSize + view.x/gameSize * mSize, mainHeight - 15 - mSize + view.y/gameSize * mSize)
 	mainCtx.rotate(view.angle)
 	mainCtx.beginPath()
 	mainCtx.fillStyle = '#3f3f3f'
 	trianglePoints.forEach(p => {
-		mainCtx.lineTo(p[0] * 5, p[1] * 4)
+		mainCtx.lineTo(p[0] * 4, p[1] * 3)
 	})
 	mainCtx.closePath()
 	mainCtx.fill()
 	mainCtx.restore()
+
+
+	mainCtx.lineWidth = 4
+	mainCtx.lineCap = 'round'
+	mainCtx.lineJoin = 'round'
+	mainCtx.strokeStyle = '#888'
+	mainCtx.strokeRect(mainWidth - 15 - mSize - 2, mainHeight - 15 - mSize - 2, mSize + 4, mSize + 4)
+	mainCtx.fillStyle = 'rgba(255, 255, 255, 0.06)'
+	mainCtx.fillRect(mainWidth - 15 - mSize, mainHeight - 15 - mSize, mSize, mSize)
+
 }	
 
 const loop = () => {
@@ -212,4 +221,23 @@ const loop = () => {
 	window.requestAnimationFrame(loop)
 }
 
-loop()		
+loop()
+
+
+
+function setFavicon() {
+	let blueTank = canvas(64, 64, ctx => {
+		let t = new Tank(24, 40, 0, "blue")
+		t.angle = -Math.PI / 6;
+		t.r = 18;
+		t.strokeColor = colors["grey"][1]
+		t.draw(ctx);
+	});
+	let favEle = document.createElement("link");
+	favEle.setAttribute("rel", "icon");
+	favEle.setAttribute("href", blueTank.toDataURL());
+	document.head.appendChild(favEle)
+}
+
+setFavicon()
+

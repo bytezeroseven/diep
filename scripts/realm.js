@@ -45,7 +45,7 @@ class Realm extends Rectangle {
 				this.y + rect.y + Math.random() * rect.h, 
 				pName == 'pentagon' ? 
 					prob ? (Math.random() < prob ? true : false) : 
-					(Math.random() < 0.02 ? true : false) : false)
+						(Math.random() < 0.02 ? true : false) : false)
 			this.addPolygon(p)
 		}
 	}

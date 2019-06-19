@@ -105,11 +105,12 @@ class Polygon {
 			this.do = (0 + this.do * 8) / 10;
 			if(this.do < 0.001) return false;
 		}	
-		ctx.save()
-		ctx.translate(this.x, this.y)
-		ctx.rotate(this.angle)
-		this.destroyed && ctx.scale(this.ds, this.ds)
-		this.destroyed && (ctx.globalAlpha = this.do)
+		ctx.save();
+		ctx.translate(this.x, this.y);
+		ctx.save();
+		ctx.rotate(this.angle);
+		this.destroyed && ctx.scale(this.ds, this.ds);
+		this.destroyed && (ctx.globalAlpha = this.do);
 		ctx.beginPath();
 		if(this.points.length > 0) {
 			ctx.moveTo(this.points[0][0] * this.r, this.points[0][1] * this.r);
@@ -130,15 +131,14 @@ class Polygon {
 		ctx.lineWidth = 3;
 		ctx.fill();
 		ctx.stroke();
-		ctx.restore()
+		ctx.restore();
 		if(this.health > 0 && this.health < this.getHealth() && this.isBullet == false) {
-			ctx.save()
-			let w = Math.min(this.r * 1.7, 43)
-			let h = 6
-			ctx.translate(this.x - w/2, this.y + this.r + Math.min(this.r, 20))
-			progress(ctx, w, h, this.health/this.getHealth())
-			ctx.restore()
+			let width = Math.min(this.r * 1.7, 35);
+			ctx.translate(-width / 2, this.r + Math.min(this.r, 20));
+			drawProgressBar(ctx, width, 6, this.health/this.getHealth());
 		}
+		ctx.restore();
+		
 	}
 }
 
@@ -186,4 +186,56 @@ function getPolygonPoints(num) {
 let trianglePoints = getPolygonPoints(3);
 let squarePoints = getPolygonPoints(4);
 let pentagonPoints = getPolygonPoints(5);
+
+
+class Text {
+	constructor() {
+		this.canvas = document.createElement("canvas");
+		this.ctx = this.canvas.getContext("2d");
+		this.setText("Test");
+		this.setFont("bolder 20px arial");
+		this.setFill("#fff");
+		this.setStroke("#222");
+		this.setLineWidth(3);
+	}
+	setText(text) {
+		this.text = text;
+	}
+	setFont(font) {
+		this.font = font;
+		this.fontSize = parseInt(font.replace(/[^0-9]/g, ""));
+	}
+	setStroke(strokeColor) {
+		this.strokeColor = strokeColor;
+	}
+	setFill(fillColor) {
+		this.fillColor = fillColor;
+	}
+	setLineWidth(lw) {
+		this.lineWidth = lw;
+	}
+	render() {
+		ctx.save();
+		ctx.font = this.font;
+		this.width = ctx.measureText(this.text).width + this.lineWidth * 2;
+		ctx.restore();
+		this.height = this.fontSize + this.lineWidth;
+		this.canvas.width = this.width;
+		this.canvas.height = this.height;
+
+		this.ctx.textBaseline = "top";
+		this.ctx.textAlign = "left";
+		this.ctx.font = this.font;
+		this.ctx.strokeStyle = this.strokeColor;
+		this.ctx.lineWidth = this.lineWidth;
+		this.ctx.fillStyle = this.fillColor;
+		if(this.strokeColor) {
+		    this.ctx.strokeText(this.text, this.lineWidth, this.lineWidth);
+		}
+		this.ctx.fillText(this.text, this.lineWidth, this.lineWidth);
+
+		return this.canvas;
+	}
+}
+
 

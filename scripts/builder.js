@@ -1,5 +1,5 @@
 
-
+document.getElementById('builder').style.display = "none"
 
 let builderTank = new Tank(0, 0, Math.floor(3.5E3 + Math.random() * 1000), 'blue')
 let selectedTurret = builderTank.turrets[0] || {}
@@ -49,6 +49,7 @@ const addButtonFor = (turret) => {
 }
 
 const addButtons = () => {
+	tcount = 0;
 	builderTank.turrets.forEach(turret => {
 		addButtonFor(turret)
 	})
@@ -100,8 +101,11 @@ document.getElementById('remove').onclick = () => {
 document.getElementById('export').onclick = () => {
 	let data = []
 	builderTank.turrets.forEach(turret => {
-		let { angle, xOffset, yOffset, w, h, baseLength, spread } = turret
-		data.push({ angle, xOffset, yOffset, w, h, baseLength, spread })
+		let obj = {};
+		turretParams.forEach(p => {
+			obj[p] = turret[p]
+		});
+		data.push(obj)
 	})
 	alert(`'${JSON.stringify(data)}'`)
 }
