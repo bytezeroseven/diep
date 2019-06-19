@@ -8,7 +8,7 @@ class Collision {
 		let x = cir2.x - cir1.x
 		let y = cir2.y - cir1.y
 		let d = Math.hypot(x, y) || 0.0001
-		let dMax = cir1.radius + cir2.radius
+		let dMax = cir1.r + cir2.r
 		let penetration = dMax - d
 		if(d < dMax) {
 			return { cir1, cir2, x, y, d, dMax, penetration }
@@ -65,7 +65,7 @@ class Realm extends Rectangle {
 			!p.isTank && p.spin(45, 10000)
 			!p.isTank && p.float()
 			p.isTank && p.update()
-			let s = p.radius * 4
+			let s = p.r * 4
 			this.qt.query(new Rectangle(p.x - s/2, p.y - s/2, s, s), (a) => {
 				if(a != p && !a.destroyed) {
 					if(a.owner == p || p.owner == a) 
@@ -83,8 +83,8 @@ class Realm extends Rectangle {
 							p.y += -y / d * penetration
 							a.x += x / d * penetration
 							a.y += y / d * penetration
-							p.setRepelVector(-x/d * v * a.radius/dMax, -y/d * v * a.radius/dMax, 1000)
-							a.setRepelVector(x/d * v * p.radius/dMax, y/d * v * p.radius/dMax, 1000)
+							p.setRepelVector(-x/d * v * a.r/dMax, -y/d * v * a.r/dMax, 1000)
+							a.setRepelVector(x/d * v * p.r/dMax, y/d * v * p.r/dMax, 1000)
 						}
 						if((a.isSquare || a.isTriangle || a.isPentagon) && (p.isSquare || p.isTriangle || p.isPentagon))
 							return

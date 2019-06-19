@@ -1,41 +1,41 @@
 const colors = {
-	'blue': '#00b0e1 #0083a8',
-	'green': '#00e06c #00a851',
-	'red': '#f04f54 #b33b3f',
-	'yellow': '#ffe46b #bfae4e',
-	'purple': '#be7ff5 #8f5fb7',
-	'grey': '#999999 #727272',
-	'darkblue': '#768cfc #5869bd',
-	'lightred': '#fc7676 #bd585a',
-	'default': '#000000 #000000',
-}
+	'blue'      : '#00b0e1 #0083a8',
+	'green'     : '#00e06c #00a851',
+	'red'       : '#f04f54 #b33b3f',
+	'yellow'    : '#ffe46b #bfae4e',
+	'purple'    : '#be7ff5 #8f5fb7',
+	'grey'      : '#999999 #727272',
+	'darkblue'  : '#768cfc #5869bd',
+	'lightred'  : '#fc7676 #bd585a',
+	'undefined' : '#999999 #727272',
+};
+
+for(let color in colors) colors[color] = colors[color].split(" ");
 
 class Polygon {
-	constructor(owner, x, y, radius, color) {
-		this.isTank = false
-		this.isBullet = false
-		this.isTurret = false
-		this.isSquare = false
-		this.isTriangle = false
-		this.isPentagon = false
-		this.owner = owner
-		this.x = x
-		this.y = y
-		this.radius = radius
-		this._radius = radius
-		this.setColor(color)
-		this.angle = Math.random() * 2 * Math.PI 
-		this.points = []
-		this.vectors = []
-		this.moveVector = this.addVector(0, 0, 1000)
-		this.repelVector = this.addVector(0, 0, 1500)
-		this.floatVector = this.addVector(0, 0, 1000)
+	constructor(owner, x, y, r, color) {
+		this.isTank = false;
+		this.isBullet = false;
+		this.isSquare = false;
+		this.isTriangle = false;
+		this.isPentagon = false;
+		this.owner = owner;
+		this.x = x;
+		this.y = y;
+		this.r = r;
+		this.setColor(color);
+		this.angle = Math.random() * 2 * Math.PI; 
+		this.points = [];
+		this.vectors = [];
+		this.moveVector = this.addVector(0, 0, 1000);
+		this.repelVector = this.addVector(0, 0, 1500);
+		this.floatVector = this.addVector(0, 0, 1000);
 		this.meta = {
 			health: 100,
 			bodyDamage: 2,
 			speed: 5
-		}
-		this.health = 100
+		};
+		this.health = 100;
 	}
 	getSpeed() {
 		return this.meta.speed
@@ -48,10 +48,8 @@ class Polygon {
 	}
 	setColor(color) {
 		this.color = color
-		let colorData = colors[color] ? colors[color] : colors['default']
-		colorData = colorData.split(' ')
-		this.fillColor = colorData[0]
-		this.strokeColor = colorData[1]
+		this.fillColor = colors[color][0]
+		this.strokeColor = colors[color][1]
 	}
 	addVector(x, y, decay) {
 		let vec = { x, y, decay }
@@ -102,74 +100,51 @@ class Polygon {
 		}
 	}
 	draw(ctx) {
-		this._radius = (this.radius * 2 + this._radius * 8) / 10 
 		if(this.destroyed) {
-			this.ds = (1.2 * 2 + this.ds * 8) / 10
-			this.do = (0 + this.do * 8) / 10
-			if(this.do < 0.01) return 
+			this.ds = (2 + this.ds * 9) / 10;
+			this.do = (0 + this.do * 8) / 10;
+			if(this.do < 0.001) return false;
 		}	
-		if(this.isTank) {
-			let ordered = this.turrets.sort((a, b) => Math.hypot(a.x, a.y) - Math.hypot(b.x, b.y))
-			for(let i = 0; i < ordered.length; i++) {
-				this.turrets[i].draw2(ctx, this)
-			}
-		}
-		ctx.fillStyle = this.fillColor
-		ctx.strokeStyle = this.strokeColor
-		ctx.lineWidth = 3
-		if(this.destroyed) {
-			ctx.lineWidth = 0.0001
-			ctx.fillStyle = this.strokeColor
-		}
 		ctx.save()
 		ctx.translate(this.x, this.y)
 		ctx.rotate(this.angle)
-		if(this.destroyed) {
-			ctx.globalAlpha = this.do
-			ctx.scale(this.ds, this.ds)
-		}
-		ctx.beginPath()
+		this.destroyed && ctx.scale(this.ds, this.ds)
+		this.destroyed && (ctx.globalAlpha = this.do)
+		ctx.beginPath();
 		if(this.points.length > 0) {
-			let f = this._radius
-			ctx.lineJoin = 'round'
-			ctx.moveTo(this.points[0][0] * f, this.points[0][1] * f)
+			ctx.moveTo(this.points[0][0] * this.r, this.points[0][1] * this.r);
 			for(let j = 1; j < this.points.length; j++) {
-				ctx.lineTo(this.points[j][0] * f, this.points[j][1] * f)
+				ctx.lineTo(
+					this.points[j][0] * this.r, 
+					this.points[j][1] * this.r
+				);
 			}
 		} else {
-			ctx.arc(0, 0, this._radius, 0, 2 * Math.PI)
+			ctx.arc(0, 0, this.r, 0, 2 * Math.PI);
 		}
-		ctx.closePath()
-		ctx.fill()
-		ctx.stroke()
+		ctx.closePath();
+		ctx.lineJoin = "round";
+		ctx.lineCap = "round";
+		ctx.fillStyle = this.destroyed ? this.strokeColor : this.fillColor;
+		ctx.strokeStyle = this.strokeColor;
+		ctx.lineWidth = 3;
+		ctx.fill();
+		ctx.stroke();
 		ctx.restore()
 		if(this.health > 0 && this.health < this.getHealth() && this.isBullet == false) {
 			ctx.save()
-			let w = Math.min(this.radius * 1.7, 43)
+			let w = Math.min(this.r * 1.7, 43)
 			let h = 6
-			ctx.translate(this.x - w/2, this.y + this.radius + Math.min(this.radius, 20))
+			ctx.translate(this.x - w/2, this.y + this.r + Math.min(this.r, 20))
 			progress(ctx, w, h, this.health/this.getHealth())
 			ctx.restore()
 		}
 	}
 }
 
-const polygon = (num) => {
-	let p = []
-	for(let j = 0; j <= num; j++) {
-		let angle = 2 * Math.PI * j / num
-		p.push([Math.cos(angle), Math.sin(angle)])
-	}
-	return p
-}
-
-let trianglePoints = polygon(3)
-let squarePoints = polygon(4)
-let pentagonPoints = polygon(5)
-
 class Triangle extends Polygon {
 	constructor(x, y) {
-		super(null, x, y, 23, 'lightred')
+		super(null, x, y, 20, 'lightred')
 		this.isTriangle = true
 		this.points = trianglePoints
 	}
@@ -180,7 +155,7 @@ class Triangle extends Polygon {
 
 class Square extends Polygon {
 	constructor(x, y) {
-		super(null, x, y, 23, 'yellow')
+		super(null, x, y, 20, 'yellow')
 		this.isSquare = true
 		this.points = squarePoints
 	}
@@ -198,3 +173,17 @@ class Pentagon extends Polygon {
 		return 10
 	}
 }
+
+function getPolygonPoints(num) {
+	let p = [];
+	for(let j = 0; j <= num; j++) {
+		let angle = 2 * Math.PI * j / num;
+		p.push([Math.cos(angle), Math.sin(angle)]);
+	}
+	return p;
+}
+
+let trianglePoints = getPolygonPoints(3);
+let squarePoints = getPolygonPoints(4);
+let pentagonPoints = getPolygonPoints(5);
+

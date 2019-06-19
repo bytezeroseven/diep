@@ -1,8 +1,8 @@
 
-class Turret extends Polygon {
+let turretParams = "x,y,angle,width,height,spread,baseLength".split(",");
+
+class Turret {
 	constructor() {
-		super(null, 0, 0, 0, 'grey')
-		this.isTurret = true
 		this.x = 0
 		this.y = 0
 		this.width = 1.8
@@ -11,44 +11,6 @@ class Turret extends Polygon {
 		this.baseLength = 0
 		this.angle = 0
 		this.fireAnim = 1
-	}
-	draw2(ctx, tank) {
-		this.fireAnim = (1 * 1 + this.fireAnim * 9) / 10
-		let x = 4 * Math.sin(2 * Math.PI * this.fireAnim)
-		let cd = colors['grey'].split(' ')
-		let lw = 3
-		let f = tank._radius
-		ctx.fillStyle = cd[0]
-		ctx.strokeStyle = cd[1]
-		ctx.lineWidth = lw
-		ctx.save()
-		ctx.translate(tank.x, tank.y)
-		ctx.rotate(tank.angle + this.angle)
-		if(tank.destroyed) {
-			ctx.globalAlpha = tank.do
-			ctx.scale(tank.ds, tank.ds)
-			ctx.fillStyle = ctx.strokeStyle
-		}
-		ctx.translate(x, 0)
-		ctx.scale(f, f)
-		ctx.translate(this.x, this.y)
-		ctx.fillRect(0, -this.height / 2, this.baseLength, this.height)
-		ctx.save()
-		ctx.scale(1 / f, 1 / f)
-		ctx.strokeRect(0, -this.height / 2 * f, this.baseLength * f , this.height * f)
-		ctx.restore()		
-		ctx.translate(this.baseLength, 0)
-		ctx.beginPath()
-		ctx.moveTo(0, -this.height / 2)
-		ctx.lineTo(this.width, -this.height / 2 - this.spread / 2)
-		ctx.lineTo(this.width, this.height / 2 + this.spread / 2)
-		ctx.lineTo(0, this.height / 2)
-		ctx.lineTo(0, 0)
-		ctx.closePath()
-		ctx.scale(1 / f, 1 / f)
-		ctx.fill()
-		ctx.stroke()
-		ctx.restore()
 	}
 }
 
@@ -106,13 +68,12 @@ class Tank extends Polygon {
 	}
 	loadTurretData(data) {
 		this.turrets = []
-		data = JSON.parse(data)
-		let params = 'xOffset, yOffset, angle, w, h, spread, baseLength'.split(', ')
+		data = JSON.parse(data);
 		data.forEach(td => {
 			let t = new Turret()
-			params.forEach(param => {
+			turretParams.forEach(param => {
 				t[param] = td[param]
-			})
+			});
 			this.addTurret(t)
 		})
 	}
@@ -159,16 +120,10 @@ class Tank extends Polygon {
 		let v = this.getMoveSpeed()
 		let dx = 0
 		let dy = 0
-		if(keys.a) {
-			dx = -1
-		} else if(keys.d) {
-			dx = 1
-		}
-		if(keys.w) {
-			dy = -1
-		} else if(keys.s) {
-			dy = 1
-		}
+		if(keys.a) dx = -1;
+		else if(keys.d) dx = 1;
+		if(keys.w) dy = -1;
+		else if(keys.s) dy = 1;
 
 		let base = 0.0004
 		let lvlf = Math.min(this.level / 45, 1)
@@ -189,7 +144,7 @@ class Tank extends Polygon {
 		let turretTopDist = t.width + t.baseLength;
 		let x = Math.cos(this.angle + turretBaseAngle) * turretBaseDist + Math.cos(this.angle + t.angle) * turretTopDist;
 		let y = Math.sin(this.angle + turretBaseAngle) * turretBaseDist + Math.sin(this.angle + t.angle) * turretTopDist;
-		let bullet = new Bullet(this, this.x + x * this.radius, this.y + y * this.radius, this.radius * t.height / 2, this.color);
+		let bullet = new Bullet(this, this.x + x * this.r, this.y + y * this.r, this.r * t.height / 2, this.color);
 
 		let angle = this.angle + t.angle;
 		let deflect = Math.PI/18;
@@ -231,8 +186,42 @@ class Tank extends Polygon {
 		}
 		this.move()
 	}
-	draw2() {
-		// body for the smasher and others (maybe)	
+	draw(ctx) {
+		for(let i = 0; i < this.turrets.length; i++) {
+			let t = this.turrets[i];
+			t.fireAnim = (1 * 1 + t.fireAnim * 9) / 10;
+
+			let x = 4 * Math.sin(2 * Math.PI * t.fireAnim);
+			let lw = 3;
+			let f = this.r;
+			ctx.fillStyle = colors['grey'][0]
+			ctx.strokeStyle = colors['grey'][1]
+			ctx.lineWidth = lw
+			ctx.save()
+			ctx.translate(this.x, this.y)
+			ctx.rotate(this.angle + t.angle)
+			if(tank.destroyed) {
+				ctx.globalAlpha = tank.do
+				ctx.scale(tank.ds, tank.ds)
+				ctx.fillStyle = ctx.strokeStyle
+			}
+			ctx.translate(x, 0)
+			ctx.translate(t.x * f, t.y * f)
+			ctx.fillRect(0, -t.height / 2 * f, t.baseLength * f, t.height * f)
+			ctx.strokeRect(0, -t.height / 2 * f, t.baseLength * f , t.height * f)	
+			ctx.translate(t.baseLength * f, 0)
+			ctx.beginPath()
+			ctx.moveTo(0, -t.height / 2 * f)
+			ctx.lineTo(t.width * f, -t.height / 2 * f - t.spread / 2 * f)
+			ctx.lineTo(t.width * f, t.height / 2 * f + t.spread / 2 * f)
+			ctx.lineTo(0, t.height / 2 * f)
+			ctx.lineTo(0, 0)
+			ctx.closePath()
+			ctx.fill()
+			ctx.stroke()
+			ctx.restore()
+		}
+		Polygon.prototype.draw.apply(this, arguments);
 	}
 }
 

@@ -70,29 +70,28 @@ document.getElementById('turret').onclick = () => {
 		let key = evt.key
 		if(key == 'q') {
 			addButtonFor(turret)
-			mainCanvas.removeEventListener('mousemove', mouseMove, true)
+			window.removeEventListener('mousemove', mouseMove, true)
 			window.removeEventListener('keydown', keyDown, true)
 		}
 	}
 	turret.mouseMove = mouseMove
 	turret.keyDown = keyDown
-	mainCanvas.addEventListener('mousemove', mouseMove, true)
+	window.addEventListener('mousemove', mouseMove, true)
 	window.addEventListener('keydown', keyDown, true)
 }
 document.getElementById('edit').onclick = () => {
 	if(builderEnabled) {
 		zoom = 1
 		builderEnabled = false
-		document.getElementById('builder').style.left = '-200px'
+		document.getElementById('builder').style.display = "none"
 	} else {
 		document.getElementById('turrets').innerHTML = ''
 		builderEnabled = true
 		builderTank = view || builderTank
 		view = builderTank
-		// zoom = 1.7
 		builderTank.angle = 0
 		addButtons()
-		document.getElementById('builder').style.left = '0px'
+		document.getElementById('builder').style.display = 'block'
 	}
 }
 document.getElementById('remove').onclick = () => {

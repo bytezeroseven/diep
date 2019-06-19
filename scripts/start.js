@@ -84,8 +84,8 @@ document.onkeydown = (evt) => {
 }
 
 let c = false
-mainCanvas.onmousedown = () => { (c = true) }
-mainCanvas.onmouseup = () => { c = false }
+document.onmousedown = () => { (c = true) }
+document.onmouseup = () => { c = false }
 
 
 
@@ -156,7 +156,7 @@ const draw = () => {
 	game.qt.query(range, (a) => {
 		arr.push(a)
 	})
-	arr = arr.sort((a, b) => a.radius - b.radius)
+	arr = arr.sort((a, b) => a.r - b.r)
 	arr.forEach(a => a.draw(mainCtx))
 
 	// game.qt.draw(mainCtx)

@@ -1,74 +1,82 @@
+
 * {
-	box-sizing: border-box;
+	box-sizing: border-box
 }
+
 body {
 	padding: 0;
 	margin: 0;
 	overflow: hidden;
-    text-shadow: -1px 0 black, 
-    			0 1px black, 
-    			1px 0 black, 
-    			0 -1px black, 
-    			-1px -1px black,
-    			-1px 1px black, 
-    			1px 1px black, 
-    			1px -1px black;
-    font-weight: 600;
-    font-size: 12px;
-    font-family: ubuntu;
+	text-shadow: -1px 0 black, 
+		0 1px black, 
+		1px 0 black, 
+		0 -1px black, 
+		-1px -1px black,
+		-1px 1px black, 
+		1px 1px black, 
+		1px -1px black;
+	font-weight: 600;
+	font-size: 14px;
+	font-family: Arial;
+	color: #fff;
 }
+
 button, input {
+	font-size: 14px;
+	font-weight: inherit;
 	border: 2px solid #333333;
 	border-radius: 2px;
-	font-size: 11px;
-	font-weight: inherit;
+	margin: 1px;
 	outline: 0;
 }
+
 input {
 	color: black;
 }
+
 button {
 	background-color: #8B8B8B;
 	background-image: linear-gradient(0deg, rgba(0, 0, 0, 0) 0%, 
-		rgba(0, 0, 0, 0) 40%, 
-		rgba(173, 173, 173, 1) 50%);
+		rgba(0, 0, 0, 0) 40%, rgba(173, 173, 173, 1) 50%);
 	color: white;
 	width: 100px;
 	line-height: 15px;
 	text-align: center;
 	text-shadow: inherit;
-	display: inline-block;
 	padding: 1px 5px;
 	outline: 0;
+	cursor: pointer;
 }
+
 button:hover {
 	background-image: linear-gradient(0deg, rgba(0, 0, 0, 0) 0%, 
-		rgba(0, 0, 0, 0) 40%, 
-		rgba(180, 180, 180, 1) 50%);
+		rgba(0, 0, 0, 0) 40%, rgba(190, 190, 190, 1) 50%);
 }
+
+h1 {
+	margin-bottom: 0;
+}
+
 .overlay {
 	position: absolute;
 	top: 0; 
 	left: 0;
 }
-#builder {
+
+#ui {
+	width: 100%;
+	height: 100%;
+}
+
+.builder_container {
 	display: flex !important;
-	color: #fff;
-	font-family: Arial;
-	font-size: 12px;
-	left: -200px;
 }
-.panel {
-	height: fit-content;
-	display: grid;
+
+.builder_panel {
 	width: 100px;
+	margin-right: 5px;
 }
-.panel * {
+
+.builder_panel * {
 	width: inherit;
-}
-
-
-#edit {
-	height: fit-content;
-	width: fit-content;
 }

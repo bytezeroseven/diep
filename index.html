@@ -7,32 +7,41 @@
 </head>
 <body>
 	<canvas id="mainCanvas"></canvas>
-	<div class='overlay' id='builder'>
-		<div class='panel'>
-			<span>Controls</span>
-			<div id='controls'>
-				<button id='turret'>New Turret</button>
-				<button id='import'>Import</button>
-				<button id='export'>Export</button>
+	<div class="overlay" id="ui">
+		<div id="builder">
+			<div class='builder_container'>
+				<div class="builder_panel">
+					<span>Controls</span>
+					<div id='controls'>
+						<button id='turret'>New Turret</button>
+						<button id='import'>Import</button>
+						<button id='export'>Export</button>
+					</div>
+					<span>All Turrets</span>
+					<div id='turrets'></div>
+				</div>
+				<div class="builder_panel" id='editor'>
+					<span>Angle</span>
+						<input type="number" placeholder='Angle' data='angle'>
+					<span>Position</span>
+						<input type="number" placeholder='Offset X' data='x'>
+						<input type="number" placeholder='Offset Y' data='y'>
+					<span>Dimensions</span>
+						<input type="number" placeholder='Width' data='width'>
+						<input type="number" placeholder='Height' data='height'>
+						<input type="number" placeholder='BaseLength' data='baseLength'>
+						<input type="number" placeholder='Spread' data='spread'>
+					<button id='remove'>Remove</button>
+				</div>
+				<div>
+					<h1>How to use?</h1>
+					<span>Press q to add the turret once you are done modifying.<span>
+				</div>
 			</div>
-			<span>All Turrets</span>
-			<div id='turrets'></div>
-		</div>
-		<div class='panel' id='editor'>
-			<span>Angle</span>
-				<input type="number" placeholder='angle' data='angle'>
-			<span>Position</span>
-				<input type="number" placeholder='offset x' data='x'>
-				<input type="number" placeholder='offset y' data='y'>
-			<span>Dimensions</span>
-				<input type="number" placeholder='width' data='width'>
-				<input type="number" placeholder='height' data='height'>
-				<input type="number" placeholder='base length' data='baseLength'>
-				<input type="number" placeholder='spread' data='spread'>
-			<button id='remove'>Remove</button>
 		</div>
 		<button id='edit'>Edit Tank</button>
 	</div>
+	
 	<script src='./scripts/polygon.js'></script>
 	<script src='./scripts/tank.js'></script>
 	<script src='./scripts/qt.js'></script>
