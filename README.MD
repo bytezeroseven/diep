@@ -8,3 +8,6 @@ An attempt to make a game like diep with its complex physics right.
 
 ## Screenshot?
 [capture](./screenshot.png)
+
+## Demo
+https://bytezeroseven.github.io/diep/
